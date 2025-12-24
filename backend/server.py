@@ -158,6 +158,182 @@ async def create_status_check(input: StatusCheckCreate):
 @api_router.get("/status", response_model=List[StatusCheck])
 async def get_status_checks():
     status_checks = await db.status_checks.find().to_list(1000)
+
+
+# ==========================
+# Materi & Kuis Models
+# ==========================
+
+class Course(BaseModel):
+  id: str
+  title: str
+  description: str | None = None
+
+
+class CourseCreate(BaseModel):
+  title: str
+  description: str | None = None
+
+
+class ChapterSection(BaseModel):
+  type: str
+  content: str | None = None  # text: markdown/HTML, image: base64, 3d: glb asset id, quiz: quiz id
+  glb_id: str | None = None
+  quiz_id: str | None = None
+
+
+class Chapter(BaseModel):
+  id: str
+  course_id: str
+  title: str
+  order: int = 0
+  sections: List[ChapterSection] = []
+
+
+class ChapterCreate(BaseModel):
+  course_id: str
+  title: str
+  order: int = 0
+  sections: List[ChapterSection] = []
+
+
+class QuizOption(BaseModel):
+  key: str
+  text: str
+
+
+class QuizQuestion(BaseModel):
+  id: str
+  question: str
+  options: List[QuizOption]
+  correct_key: str
+
+
+class Quiz(BaseModel):
+  id: str
+  title: str
+  questions: List[QuizQuestion]
+
+
+class QuizCreate(BaseModel):
+  title: str
+  questions: List[QuizQuestion]
+
+
+class QuizAnswer(BaseModel):
+  question_id: str
+  choice_key: str
+
+
+class QuizAttemptRequest(BaseModel):
+  answers: List[QuizAnswer]
+
+
+class QuizAttemptResult(BaseModel):
+  score: int
+  correct_count: int
+  total: int
+
+
+# ==========================
+# Materi & Kuis Routes
+# ==========================
+
+@api_router.get("/courses", response_model=List[Course])
+async def list_courses():
+  docs = await db.courses.find().to_list(100)
+  return [Course(id=str(d["_id"]), title=d["title"], description=d.get("description")) for d in docs]
+
+
+@api_router.post("/courses", response_model=Course)
+async def create_course(payload: CourseCreate):
+  doc = {"title": payload.title, "description": payload.description}
+  res = await db.courses.insert_one(doc)
+  return Course(id=str(res.inserted_id), title=payload.title, description=payload.description)
+
+
+@api_router.get("/chapters/{chapter_id}", response_model=Chapter)
+async def get_chapter(chapter_id: str):
+  from bson import ObjectId
+
+  doc = await db.chapters.find_one({"_id": ObjectId(chapter_id)})
+  if not doc:
+    raise HTTPException(status_code=404, detail="Bab tidak ditemukan")
+
+  sections = [ChapterSection(**s) for s in doc.get("sections", [])]
+  return Chapter(
+    id=str(doc["_id"]),
+    course_id=str(doc["course_id"]),
+    title=doc["title"],
+    order=doc.get("order", 0),
+    sections=sections,
+  )
+
+
+@api_router.post("/chapters", response_model=Chapter)
+async def create_chapter(payload: ChapterCreate):
+  from bson import ObjectId
+
+  doc = {
+    "course_id": ObjectId(payload.course_id),
+    "title": payload.title,
+    "order": payload.order,
+    "sections": [s.dict() for s in payload.sections],
+  }
+  res = await db.chapters.insert_one(doc)
+  return Chapter(
+    id=str(res.inserted_id),
+    course_id=payload.course_id,
+    title=payload.title,
+    order=payload.order,
+    sections=payload.sections,
+  )
+
+
+@api_router.get("/quizzes/{quiz_id}", response_model=Quiz)
+async def get_quiz(quiz_id: str):
+  from bson import ObjectId
+
+  doc = await db.quizzes.find_one({"_id": ObjectId(quiz_id)})
+  if not doc:
+    raise HTTPException(status_code=404, detail="Kuis tidak ditemukan")
+
+  questions = [QuizQuestion(**q) for q in doc.get("questions", [])]
+  return Quiz(id=str(doc["_id"]), title=doc["title"], questions=questions)
+
+
+@api_router.post("/quizzes", response_model=Quiz)
+async def create_quiz(payload: QuizCreate):
+  doc = {
+    "title": payload.title,
+    "questions": [q.dict() for q in payload.questions],
+  }
+  res = await db.quizzes.insert_one(doc)
+  return Quiz(id=str(res.inserted_id), title=payload.title, questions=payload.questions)
+
+
+@api_router.post("/quizzes/{quiz_id}/attempts", response_model=QuizAttemptResult)
+async def attempt_quiz(quiz_id: str, payload: QuizAttemptRequest):
+  from bson import ObjectId
+
+  doc = await db.quizzes.find_one({"_id": ObjectId(quiz_id)})
+  if not doc:
+    raise HTTPException(status_code=404, detail="Kuis tidak ditemukan")
+
+  questions = [QuizQuestion(**q) for q in doc.get("questions", [])]
+  total = len(questions)
+
+  correct = 0
+  answer_map = {a.question_id: a.choice_key for a in payload.answers}
+
+  for q in questions:
+    if answer_map.get(q.id) == q.correct_key:
+      correct += 1
+
+  score = int(correct / total * 100) if total > 0 else 0
+
+  return QuizAttemptResult(score=score, correct_count=correct, total=total)
+
     return [StatusCheck(**status_check) for status_check in status_checks]
 
 # Include the router in the main app
