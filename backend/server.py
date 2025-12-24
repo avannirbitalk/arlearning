@@ -342,8 +342,6 @@ async def attempt_quiz(quiz_id: str, payload: QuizAttemptRequest):
 
   return QuizAttemptResult(score=score, correct_count=correct, total=total)
 
-    return [StatusCheck(**status_check) for status_check in status_checks]
-
 # Include the router in the main app
 app.include_router(api_router)
 
