@@ -17,7 +17,8 @@ export default function Index() {
   }
 
   // Setelah status login diketahui, arahkan ke halaman yang sesuai.
-  return <Redirect href={user ? '/(app)/home' : '/(auth)/login'} />;
+  // Catatan: segment grup (app)/(auth) tidak muncul di URL, jadi gunakan '/home' dan '/login'.
+  return <Redirect href={user ? '/home' : '/login'} />;
 }
 
 const styles = StyleSheet.create({
