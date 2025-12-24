@@ -50,6 +50,92 @@ api_router = APIRouter(prefix="/api")
 # Define Models
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+
+
+# ==========================
+# Email verification models
+# ==========================
+
+class EmailRequest(BaseModel):
+    email: EmailStr
+
+
+class EmailVerifyRequest(BaseModel):
+    email: EmailStr
+    code: str
+
+
+# ==========================
+# Helper functions
+# ==========================
+
+async def send_verification_email(email: str, code: str):
+    if not GMAIL_USER or not GMAIL_PASS:
+        logger.error("GMAIL_USER or GMAIL_PASS is not configured")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Konfigurasi email belum lengkap",
+        )
+
+    msg = MIMEText(
+        f"Kode verifikasi e-learning AR Anda adalah: {code}\n\nJangan berikan kode ini kepada orang lain.",
+        "plain",
+        "utf-8",
+    )
+    msg["Subject"] = "Kode Verifikasi E-Learning AR"
+    msg["From"] = GMAIL_USER
+    msg["To"] = email
+
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465) as server:
+            server.login(GMAIL_USER, GMAIL_PASS)
+            server.send_message(msg)
+        logger.info(f"Verification email sent to {email}")
+    except Exception as e:
+        logger.exception("Failed to send verification email")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Gagal mengirim email verifikasi",
+        )
+
+
+# ==========================
+# Auth & verification routes
+# ==========================
+
+@api_router.post("/auth/register/request")
+async def request_email_verification(payload: EmailRequest):
+    """Generate kode verifikasi dan kirim via email."""
+    code = "".join(str(random.randint(0, 9)) for _ in range(6))
+    doc = {
+        "email": payload.email,
+        "code": code,
+        "created_at": datetime.utcnow(),
+    }
+    await db.email_verifications.insert_one(doc)
+
+    await send_verification_email(payload.email, code)
+
+    return {"success": True}
+
+
+@api_router.post("/auth/register/verify")
+async def verify_email_code(payload: EmailVerifyRequest):
+    """Verifikasi kode yang dikirim ke email."""
+    record = await db.email_verifications.find_one(
+        {"email": payload.email, "code": payload.code}
+    )
+    if not record:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kode verifikasi tidak valid",
+        )
+
+    # Optional: hapus semua kode lama untuk email ini
+    await db.email_verifications.delete_many({"email": payload.email})
+
+    return {"valid": True}
+
     client_name: str
     timestamp: datetime = Field(default_factory=datetime.utcnow)
 
