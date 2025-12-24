@@ -17,7 +17,7 @@ export default function Index() {
   }
 
   // Setelah status login diketahui, arahkan ke halaman yang sesuai.
-  return <Redirect href={user ? '/home' : '/login'} />;
+  return <Redirect href={user ? '/(app)/home' : '/(auth)/login'} />;
 }
 
 const styles = StyleSheet.create({
