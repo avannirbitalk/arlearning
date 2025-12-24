@@ -10,6 +10,16 @@ from typing import List
 import uuid
 from datetime import datetime
 
+from fastapi import HTTPException, status, Depends
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from pydantic import EmailStr
+from typing import Optional
+import smtplib
+from email.mime.text import MIMEText
+import random
+
+
+
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
