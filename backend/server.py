@@ -47,9 +47,15 @@ app = FastAPI()
 api_router = APIRouter(prefix="/api")
 
 
-# Define Models
+# Healthcheck models (legacy)
 class StatusCheck(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    client_name: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+
+class StatusCheckCreate(BaseModel):
+    client_name: str
 
 
 # ==========================
@@ -136,11 +142,6 @@ async def verify_email_code(payload: EmailVerifyRequest):
 
     return {"valid": True}
 
-    client_name: str
-    timestamp: datetime = Field(default_factory=datetime.utcnow)
-
-class StatusCheckCreate(BaseModel):
-    client_name: str
 
 # Add your routes to the router instead of directly to app
 @api_router.get("/")
