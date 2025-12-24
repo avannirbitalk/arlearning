@@ -1,24 +1,19 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { Redirect } from 'expo-router';
-import { useAuth } from '../src/store/auth';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '../src/theme/colors';
 
+// Untuk sementara, kita tampilkan halaman sederhana di root ('/') tanpa redirect
+// supaya tidak terjadi Unmatched Route di web/Expo Go.
 export default function Index() {
-  const { user, loading } = useAuth();
-
-  if (loading) {
-    return (
-      <View style={styles.container}>
-        <ActivityIndicator color={colors.primary} />
-        <Text style={styles.text}>Memuat aplikasi...</Text>
-      </View>
-    );
-  }
-
-  // Setelah status login diketahui, arahkan ke halaman yang sesuai.
-  // Catatan: segment grup (app)/(auth) tidak muncul di URL, jadi gunakan '/home' dan '/login'.
-  return <Redirect href={user ? '/home' : '/login'} />;
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>E-Learning AR</Text>
+      <Text style={styles.subtitle}>
+        Versi mobile sedang dalam pengembangan. Gunakan menu tab di bawah (jika tampil) atau
+        akses fitur melalui rute lain.
+      </Text>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -26,10 +21,19 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
     backgroundColor: colors.background,
   },
-  text: {
-    marginTop: 12,
+  title: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: colors.text,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  subtitle: {
+    fontSize: 14,
     color: colors.textMuted,
+    textAlign: 'center',
   },
 });
