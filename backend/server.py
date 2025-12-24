@@ -18,6 +18,17 @@ import smtplib
 from email.mime.text import MIMEText
 import random
 
+# Environment variables for Supabase and email
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+SUPABASE_BUCKET_UPLOADS = os.getenv("SUPABASE_BUCKET_UPLOADS", "uploads")
+GMAIL_USER = os.getenv("GMAIL_USER")
+GMAIL_PASS = os.getenv("GMAIL_PASS")
+
+http_bearer = HTTPBearer(auto_error=False)
+
+
+
 
 
 
