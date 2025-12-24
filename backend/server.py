@@ -26,6 +26,13 @@ GMAIL_USER = os.getenv("GMAIL_USER")
 GMAIL_PASS = os.getenv("GMAIL_PASS")
 
 http_bearer = HTTPBearer(auto_error=False)
+from asyncpg import create_pool, Pool
+
+DATABASE_URL = os.getenv("DATABASE_URL")
+pg_pool: Pool | None = None
+
+
+
 
 
 
